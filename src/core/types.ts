@@ -118,3 +118,43 @@ export interface LifeDashboardSummary {
   overdueCount: number;
   deadlines: DeadlineItem[];
 }
+
+export type AuditSeverity = "info" | "warning" | "critical";
+
+export interface LifeAuditIssue {
+  severity: AuditSeverity;
+  category: "document" | "warranty" | "procedure" | "integrity";
+  targetId: string;
+  targetTitle: string;
+  message: string;
+  actionRequired: string;
+}
+
+export interface LifeAuditReport {
+  timestamp: string;
+  referenceDate: string;
+  observedFacts: {
+    totalDocuments: number;
+    totalWarranties: number;
+    totalProcedures: number;
+    verifiedReceiptsCount: number;
+    completedStepsCount: number;
+  };
+  estimatedIndicators: {
+    activeWarrantiesValueEur: number;
+    averageProcedureCompletionRate: number;
+    upcomingDeadlinesNext90d: number;
+  };
+  requiredHumanDecisions: LifeAuditIssue[];
+  healthScore: number; // 0-100%
+}
+
+export interface SearchMatch {
+  entityType: "document" | "warranty" | "procedure";
+  id: string;
+  title: string;
+  category: DocumentCategory;
+  details: string;
+  score: number;
+}
+

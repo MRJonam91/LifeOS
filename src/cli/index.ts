@@ -6,13 +6,17 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
+  diffVaults,
   exportDocumentsToCsv,
   exportVaultToCsv,
   exportVaultToHtml,
   exportVaultToIcal,
   exportVaultToJson,
+  exportVaultToMarkdown,
+  formatVaultDiff,
   importVaultFromJson,
 } from "../adapters/index.ts";
+import { performVaultAudit } from "../core/audit.ts";
 import {
   LIFEOS_VERSION,
   SPONSOR_MESSAGE,
@@ -26,7 +30,18 @@ import { createPilotVault } from "../core/fixtures.ts";
 import { completeStep, computeProcedureProgress, createProcedure } from "../core/procedures.ts";
 import type { DocumentCategory, LifeDocument, LifeVault } from "../core/types.ts";
 import { isSupportedCategory, validateDocument } from "../core/validator.ts";
-import { addDocument, addProcedure, addWarranty, createEmptyVault } from "../core/vault.ts";
+import {
+  addDocument,
+  addProcedure,
+  addWarranty,
+  archiveDocument,
+  removeDocument,
+  removeProcedure,
+  removeWarranty,
+  restoreDocument,
+  searchVault,
+  updateDocument,
+} from "../core/vault.ts";
 import { createWarranty } from "../core/warranties.ts";
 
 const DEFAULT_VAULT_DIR = join(homedir(), ".lifeos");
@@ -56,7 +71,6 @@ function loadOrCreateVault(vaultPath: string): LifeVault {
     }
   }
 
-  // If file doesn't exist, create initial demo vault so user immediately sees value
   const initialVault = createPilotVault();
   try {
     const dir = join(vaultPath, "..");
@@ -78,7 +92,7 @@ function saveVault(vaultPath: string, vault: LifeVault): void {
   writeFileSync(vaultPath, exportVaultToJson(vault), "utf8");
 }
 
-function parseCliArgs(args: string[]): { command: string; subCommand?: string; flags: Record<string, string> } {
+function parseCliArgs(args: string[]): { command: string; subCommand?: string; flags: Record<string, string>; rest: string[] } {
   const flags: Record<string, string> = {};
   const positional: string[] = [];
 
@@ -100,6 +114,7 @@ function parseCliArgs(args: string[]): { command: string; subCommand?: string; f
     command: positional[0] ?? "dashboard",
     subCommand: positional[1],
     flags,
+    rest: positional.slice(2),
   };
 }
 
@@ -162,21 +177,166 @@ function renderDashboard(vault: LifeVault, refDate: string): void {
     }
   }
 
-  console.log("\n\x1b[90mQuick commands: lifeos doc list | lifeos warranty list | lifeos export --format=ics\x1b[0m");
+  console.log("\n\x1b[90mQuick commands: lifeos doc list | lifeos audit | lifeos search <term> | lifeos export --format=ics\x1b[0m");
+}
+
+function handleSearchCommand(vault: LifeVault, query?: string): void {
+  if (!query || query.trim() === "") {
+    console.error("\x1b[31mUsage: lifeos search <query>\x1b[0m");
+    process.exit(1);
+  }
+
+  const results = searchVault(vault, query);
+  console.log(`\n\x1b[1;36m=== Search Results for "${query}" (${results.length} matches) ===\x1b[0m\n`);
+
+  if (results.length === 0) {
+    console.log("  No matching documents, warranties, or procedures found.");
+    return;
+  }
+
+  for (const r of results) {
+    const typeLabel = `[${r.entityType.toUpperCase()}]`;
+    console.log(`• \x1b[1m${r.title}\x1b[0m \x1b[36m${typeLabel}\x1b[0m (${r.category})`);
+    console.log(`  ID: ${r.id} | ${r.details}`);
+    console.log("");
+  }
+}
+
+function handleAuditCommand(vault: LifeVault): void {
+  const audit = performVaultAudit(vault);
+
+  let scoreColor = "\x1b[32m";
+  if (audit.healthScore < 70) scoreColor = "\x1b[31m";
+  else if (audit.healthScore < 90) scoreColor = "\x1b[33m";
+
+  console.log(`\n\x1b[1;36m=== LifeOS Tripartite Integrity Audit ===\x1b[0m`);
+  console.log(`\x1b[90mReference Date: ${audit.referenceDate} | Timestamp: ${audit.timestamp}\x1b[0m`);
+  console.log(`\nVault Health Score: ${scoreColor}\x1b[1m${audit.healthScore} / 100\x1b[0m\n`);
+
+  console.log("\x1b[1;32m1. Observed Verifiable Facts:\x1b[0m");
+  console.log(`  • Registered Documents: ${audit.observedFacts.totalDocuments}`);
+  console.log(`  • Registered Warranties: ${audit.observedFacts.totalWarranties} (Proofs verified: ${audit.observedFacts.verifiedReceiptsCount})`);
+  console.log(`  • Procedures Tracked: ${audit.observedFacts.totalProcedures} (Completed steps: ${audit.observedFacts.completedStepsCount})`);
+
+  console.log("\n\x1b[1;34m2. Estimated Indicators:\x1b[0m");
+  console.log(`  • Estimated Value under Active Statutory Warranty: €${audit.estimatedIndicators.activeWarrantiesValueEur.toFixed(2)}`);
+  console.log(`  • Average Procedure Completion Rate: ${audit.estimatedIndicators.averageProcedureCompletionRate}%`);
+  console.log(`  • Deadlines in the next 90 days: ${audit.estimatedIndicators.upcomingDeadlinesNext90d}`);
+
+  console.log("\n\x1b[1;33m3. Required Human Decisions & Actionable Alerts:\x1b[0m");
+  if (audit.requiredHumanDecisions.length === 0) {
+    console.log("  \x1b[32m✓ All clear: No overdue obligations, missing proofs, or blocked dependencies.\x1b[0m");
+  } else {
+    for (const d of audit.requiredHumanDecisions) {
+      let icon = "\x1b[33m[!]\x1b[0m";
+      if (d.severity === "critical") icon = "\x1b[1;31m[CRITICAL]\x1b[0m";
+      else if (d.severity === "info") icon = "\x1b[90m[INFO]\x1b[0m";
+
+      console.log(`  ${icon} \x1b[1m${d.targetTitle}\x1b[0m (\x1b[90m${d.category}\x1b[0m)`);
+      console.log(`     Issue:  ${d.message}`);
+      console.log(`     Action: \x1b[36m${d.actionRequired}\x1b[0m\n`);
+    }
+  }
+}
+
+function handleDiffCommand(vault: LifeVault, otherPath?: string): void {
+  if (!otherPath || !existsSync(otherPath)) {
+    console.error(`\x1b[31mUsage: lifeos diff <path-to-other-vault.json>\x1b[0m`);
+    process.exit(1);
+  }
+
+  try {
+    const raw = readFileSync(otherPath, "utf8");
+    const otherVault = importVaultFromJson(raw);
+    const diff = diffVaults(vault, otherVault);
+    console.log("\n" + formatVaultDiff(diff));
+  } catch (err) {
+    console.error(`\x1b[31mError reading comparison vault: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+    process.exit(1);
+  }
 }
 
 function handleDocCommand(vault: LifeVault, vaultPath: string, subCommand?: string, flags: Record<string, string> = {}): void {
   if (subCommand === "list" || !subCommand) {
-    console.log(`\n\x1b[1;36m=== Documents in Vault (${vault.documents.length}) ===\x1b[0m\n`);
-    for (const d of vault.documents) {
+    const showAll = flags["all"] === "true";
+    const docs = showAll ? vault.documents : vault.documents.filter((d) => !d.archived);
+    console.log(`\n\x1b[1;36m=== Documents in Vault (${docs.length}${showAll ? " including archived" : ""}) ===\x1b[0m\n`);
+
+    for (const d of docs) {
       const remaining = calculateDaysRemaining(d.expiryDate, getTodayIso());
       const remStr = remaining < 0 ? `\x1b[31mEXPIRED\x1b[0m` : `${remaining}d left`;
-      console.log(`• \x1b[1m${d.title}\x1b[0m [${d.category}]`);
+      const archStr = d.archived ? " \x1b[90m[ARCHIVED]\x1b[0m" : "";
+      console.log(`• \x1b[1m${d.title}\x1b[0m [${d.category}]${archStr}`);
       console.log(`  ID: ${d.id} | Expires: ${d.expiryDate} (${remStr}) | Location: ${d.storageLocation ?? "N/A"}`);
       if (d.documentNumber) console.log(`  Doc #: ${d.documentNumber} | Issuer: ${d.issuer ?? "N/A"}`);
       if (d.notes) console.log(`  Notes: ${d.notes}`);
       console.log("");
     }
+    return;
+  }
+
+  if (subCommand === "view") {
+    const id = flags["id"];
+    if (!id) {
+      console.error("\x1b[31mUsage: lifeos doc view --id=<doc_id>\x1b[0m");
+      process.exit(1);
+    }
+    const doc = vault.documents.find((d) => d.id === id);
+    if (!doc) {
+      console.error(`\x1b[31mDocument "${id}" not found.\x1b[0m`);
+      process.exit(1);
+    }
+    console.log(`\n\x1b[1;36m=== Document Details: ${doc.title} ===\x1b[0m`);
+    console.log(`  ID:               ${doc.id}`);
+    console.log(`  Category:         ${doc.category}`);
+    console.log(`  Document Number:  ${doc.documentNumber ?? "—"}`);
+    console.log(`  Issuer:           ${doc.issuer ?? "—"}`);
+    console.log(`  Holder:           ${doc.holder ?? "—"}`);
+    console.log(`  Issue Date:       ${doc.issueDate ?? "—"}`);
+    console.log(`  Expiry Date:      ${doc.expiryDate}`);
+    console.log(`  Warning Days:     ${doc.warningDays ?? 30}`);
+    console.log(`  Location:         ${doc.storageLocation ?? "—"}`);
+    console.log(`  Tags:             ${(doc.tags ?? []).join(", ") || "—"}`);
+    console.log(`  Archived:         ${doc.archived ? "Yes" : "No"}`);
+    console.log(`  Notes:            ${doc.notes ?? "—"}`);
+    console.log(`  Created:          ${doc.createdAt}`);
+    console.log(`  Updated:          ${doc.updatedAt}`);
+    return;
+  }
+
+  if (subCommand === "archive") {
+    const id = flags["id"];
+    if (!id) {
+      console.error("\x1b[31mUsage: lifeos doc archive --id=<doc_id>\x1b[0m");
+      process.exit(1);
+    }
+    const updated = archiveDocument(vault, id);
+    saveVault(vaultPath, updated);
+    console.log(`\x1b[32mDocument "${id}" archived successfully.\x1b[0m`);
+    return;
+  }
+
+  if (subCommand === "restore") {
+    const id = flags["id"];
+    if (!id) {
+      console.error("\x1b[31mUsage: lifeos doc restore --id=<doc_id>\x1b[0m");
+      process.exit(1);
+    }
+    const updated = restoreDocument(vault, id);
+    saveVault(vaultPath, updated);
+    console.log(`\x1b[32mDocument "${id}" restored successfully.\x1b[0m`);
+    return;
+  }
+
+  if (subCommand === "remove") {
+    const id = flags["id"];
+    if (!id) {
+      console.error("\x1b[31mUsage: lifeos doc remove --id=<doc_id>\x1b[0m");
+      process.exit(1);
+    }
+    const updated = removeDocument(vault, id);
+    saveVault(vaultPath, updated);
+    console.log(`\x1b[32mDocument "${id}" removed from vault.\x1b[0m`);
     return;
   }
 
@@ -241,6 +401,43 @@ function handleWarrantyCommand(vault: LifeVault, vaultPath: string, subCommand?:
     return;
   }
 
+  if (subCommand === "view") {
+    const id = flags["id"];
+    if (!id) {
+      console.error("\x1b[31mUsage: lifeos warranty view --id=<warranty_id>\x1b[0m");
+      process.exit(1);
+    }
+    const w = vault.warranties.find((x) => x.id === id);
+    if (!w) {
+      console.error(`\x1b[31mWarranty "${id}" not found.\x1b[0m`);
+      process.exit(1);
+    }
+    console.log(`\n\x1b[1;36m=== Warranty Details: ${w.item} ===\x1b[0m`);
+    console.log(`  ID:               ${w.id}`);
+    console.log(`  Brand / Model:    ${w.brand ?? "—"} ${w.model ?? ""}`);
+    console.log(`  Serial Number:    ${w.serialNumber ?? "—"}`);
+    console.log(`  Purchase Date:    ${w.purchaseDate}`);
+    console.log(`  Duration Months:  ${w.durationMonths}`);
+    console.log(`  Expiry Date:      ${w.expiryDate}`);
+    console.log(`  Retailer:         ${w.retailer ?? "—"}`);
+    console.log(`  Price:            ${w.price ? `€${w.price}` : "—"}`);
+    console.log(`  Proof Reference:  ${w.proofOfPurchase ?? "—"}`);
+    console.log(`  Notes:            ${w.notes ?? "—"}`);
+    return;
+  }
+
+  if (subCommand === "remove") {
+    const id = flags["id"];
+    if (!id) {
+      console.error("\x1b[31mUsage: lifeos warranty remove --id=<warranty_id>\x1b[0m");
+      process.exit(1);
+    }
+    const updated = removeWarranty(vault, id);
+    saveVault(vaultPath, updated);
+    console.log(`\x1b[32mWarranty "${id}" removed from vault.\x1b[0m`);
+    return;
+  }
+
   if (subCommand === "add") {
     const item = flags["item"];
     const purchaseDate = flags["purchase"];
@@ -287,6 +484,36 @@ function handleTaskCommand(vault: LifeVault, vaultPath: string, subCommand?: str
     return;
   }
 
+  if (subCommand === "view") {
+    const id = flags["id"];
+    if (!id) {
+      console.error("\x1b[31mUsage: lifeos task view --id=<procedure_id>\x1b[0m");
+      process.exit(1);
+    }
+    const proc = vault.procedures.find((p) => p.id === id);
+    if (!proc) {
+      console.error(`\x1b[31mProcedure "${id}" not found.\x1b[0m`);
+      process.exit(1);
+    }
+    const prog = computeProcedureProgress(proc);
+    console.log(`\n\x1b[1;36m=== Procedure Details: ${proc.title} ===\x1b[0m`);
+    console.log(`  ID:               ${proc.id}`);
+    console.log(`  Category:         ${proc.category}`);
+    console.log(`  Status:           ${proc.status}`);
+    console.log(`  Target Deadline:  ${proc.targetDeadline ?? "—"}`);
+    console.log(`  Progress:         ${prog.percentage}% (${prog.completed}/${prog.total} steps)`);
+    console.log(`  Notes:            ${proc.notes ?? "—"}`);
+    console.log(`\n  Steps:`);
+    for (const s of proc.steps) {
+      const mark = s.completed ? "\x1b[32m[✓]\x1b[0m" : "\x1b[90m[ ]\x1b[0m";
+      console.log(`    ${mark} ${s.title}${s.dueDate ? ` (Due: ${s.dueDate})` : ""}`);
+      if (s.requiredDocIds && s.requiredDocIds.length > 0) {
+        console.log(`      Requires Docs: ${s.requiredDocIds.join(", ")}`);
+      }
+    }
+    return;
+  }
+
   if (subCommand === "done") {
     const procId = flags["id"];
     const stepId = flags["step"];
@@ -310,6 +537,18 @@ function handleTaskCommand(vault: LifeVault, vaultPath: string, subCommand?: str
 
     saveVault(vaultPath, updatedVault);
     console.log(`\x1b[32mMarked step "${stepId}" of procedure "${procId}" as completed!\x1b[0m`);
+    return;
+  }
+
+  if (subCommand === "remove") {
+    const id = flags["id"];
+    if (!id) {
+      console.error("\x1b[31mUsage: lifeos task remove --id=<procedure_id>\x1b[0m");
+      process.exit(1);
+    }
+    const updated = removeProcedure(vault, id);
+    saveVault(vaultPath, updated);
+    console.log(`\x1b[32mProcedure "${id}" removed from vault.\x1b[0m`);
     return;
   }
 
@@ -346,11 +585,13 @@ function handleExportCommand(vault: LifeVault, flags: Record<string, string>): v
     output = exportVaultToJson(vault);
   } else if (format === "html") {
     output = exportVaultToHtml(vault);
+  } else if (format === "md" || format === "markdown") {
+    output = exportVaultToMarkdown(vault);
   } else if (format === "csv") {
     const csvData = exportVaultToCsv(vault);
-    output = csvData.documents; // default to documents if single file
+    output = csvData.documents;
   } else {
-    console.error(`\x1b[31mUnsupported export format "${format}". Choose from: ics, json, html, csv\x1b[0m`);
+    console.error(`\x1b[31mUnsupported export format "${format}". Choose from: ics, json, html, md, csv\x1b[0m`);
     process.exit(1);
   }
 
@@ -372,29 +613,42 @@ Track personal documents, renewal deadlines, warranties, and paperwork procedure
 
 \x1b[1mCOMMANDS:\x1b[0m
   \x1b[33mdashboard\x1b[0m                       Display priority timeline, status overview, and paperwork
-  \x1b[33mdoc list\x1b[0m                        List all documents in vault
+  \x1b[33msearch <query>\x1b[0m                  Fast search across documents, warranties, and procedures
+  \x1b[33maudit\x1b[0m                           Run tripartite integrity audit (Facts vs Estimates vs Decisions)
+  \x1b[33mdiff <path>\x1b[0m                     Compare current vault with another backup/snapshot
+  \x1b[33mdoc list\x1b[0m                        List documents in vault (--all to include archived)
+  \x1b[33mdoc view\x1b[0m                        View complete details of a document (--id=...)
   \x1b[33mdoc add\x1b[0m                         Add a personal document
+  \x1b[33mdoc archive\x1b[0m                     Archive a document (--id=...)
+  \x1b[33mdoc restore\x1b[0m                     Restore an archived document (--id=...)
+  \x1b[33mdoc remove\x1b[0m                      Delete a document (--id=...)
   \x1b[33mwarranty list\x1b[0m                   List active warranties and proof of purchase
+  \x1b[33mwarranty view\x1b[0m                   View complete warranty record (--id=...)
   \x1b[33mwarranty add\x1b[0m                    Register an item warranty
+  \x1b[33mwarranty remove\x1b[0m                 Remove a warranty (--id=...)
   \x1b[33mtask list\x1b[0m                       List administrative procedures and checklist steps
-  \x1b[33mtask done\x1b[0m                       Mark a checklist step as completed
+  \x1b[33mtask view\x1b[0m                       View procedure details and dependencies (--id=...)
+  \x1b[33mtask done\x1b[0m                       Mark a checklist step as completed (--id=... --step=...)
   \x1b[33mtask add\x1b[0m                        Create a new multi-step administrative procedure
-  \x1b[33mexport\x1b[0m                          Export vault (--format=ics|json|html|csv [--out=filename])
+  \x1b[33mtask remove\x1b[0m                     Remove a procedure (--id=...)
+  \x1b[33mexport\x1b[0m                          Export vault (--format=ics|json|html|md|csv [--out=filename])
   \x1b[33mdemo\x1b[0m                            Load or output synthetic pilot dataset
   \x1b[33mhelp, --help\x1b[0m                    Show this help guide
 
 \x1b[1mEXAMPLES:\x1b[0m
   lifeos dashboard
+  lifeos search passaporto
+  lifeos audit
   lifeos doc add --title="Passaporto" --category=identity --expiry=2034-05-10
   lifeos warranty add --item="MacBook Pro" --purchase=2025-01-10 --months=24
   lifeos task done --id=proc_passaporto_rinnovo --step=step_bollettino
   lifeos export --format=ics --out=scadenze.ics
-  lifeos export --format=html --out=dashboard.html
+  lifeos export --format=md --out=Dossier.md
 `);
 }
 
 export function runCli(argv: string[] = process.argv.slice(2)): void {
-  const { command, subCommand, flags } = parseCliArgs(argv);
+  const { command, subCommand, flags, rest } = parseCliArgs(argv);
 
   if (flags["help"] || command === "help" || command === "--help" || command === "-h") {
     printHelp();
@@ -427,6 +681,15 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
   switch (command) {
     case "dashboard":
       renderDashboard(vault, getTodayIso());
+      break;
+    case "search":
+      handleSearchCommand(vault, subCommand ?? rest[0]);
+      break;
+    case "audit":
+      handleAuditCommand(vault);
+      break;
+    case "diff":
+      handleDiffCommand(vault, subCommand ?? rest[0]);
       break;
     case "doc":
       handleDocCommand(vault, vaultPath, subCommand, flags);

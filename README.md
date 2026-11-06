@@ -46,20 +46,27 @@ Launch instantly with `npx` or clone the repository:
 # 1. View the personal dashboard with the pre-loaded synthetic pilot scenario
 npx lifeos demo
 
-# 2. Add an identity document
+# 2. Run the Tripartite Integrity Audit (Observed Facts vs Estimates vs Decisions)
+npx lifeos audit
+
+# 3. Fast search across documents, warranties, and paperwork
+npx lifeos search passaporto
+
+# 4. Add an identity document
 npx lifeos doc add --title="Passaporto Italiano" --category=identity --expiry=2034-05-10 --issuer="Questura di Torino"
 
-# 3. Add an appliance or hardware warranty (calculates 24-month warranty automatically)
+# 5. Add an appliance or hardware warranty (calculates 24-month statutory warranty automatically)
 npx lifeos warranty add --item="MacBook Pro 14 M3" --purchase=2025-01-15 --months=24 --brand="Apple"
 
-# 4. View active paperwork and tick off a completed step
+# 6. View active paperwork and tick off a completed step
 npx lifeos task list
 npx lifeos task done --id=proc_passaporto_rinnovo --step=step_bollettino
 
-# 5. Export an iCalendar feed to sync with your phone / calendar
+# 7. Export an iCalendar feed to sync with your phone / calendar
 npx lifeos export --format=ics --out=lifeos-deadlines.ics
 
-# 6. Generate an interactive, self-contained offline HTML report
+# 8. Export a printable Markdown dossier or interactive offline HTML report
+npx lifeos export --format=md --out=Dossier.md
 npx lifeos export --format=html --out=dashboard.html
 ```
 

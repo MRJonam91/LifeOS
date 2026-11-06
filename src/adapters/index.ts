@@ -3,5 +3,7 @@
 
 export * from "./backup.ts";
 export * from "./csv.ts";
+export * from "./diff.ts";
 export * from "./html.ts";
 export * from "./ical.ts";
+export * from "./markdown.ts";

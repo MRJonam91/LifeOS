@@ -46,20 +46,27 @@ Avvia all'istante con `npx` o clona il repository:
 # 1. Visualizza il cruscotto personale con lo scenario pilota sintetico
 npx lifeos demo
 
-# 2. Aggiungi un documento di identità
+# 2. Esegui l'audit tripartito di integrità (Fatti osservati vs Stime vs Decisioni umane)
+npx lifeos audit
+
+# 3. Ricerca rapida tra documenti, garanzie e pratiche burocratiche
+npx lifeos search passaporto
+
+# 4. Aggiungi un documento di identità
 npx lifeos doc add --title="Passaporto Italiano" --category=identity --expiry=2034-05-10 --issuer="Questura di Torino"
 
-# 3. Registra una garanzia (calcola automaticamente la scadenza a 24 mesi)
+# 5. Registra una garanzia (calcola automaticamente la scadenza legale a 24 mesi)
 npx lifeos warranty add --item="MacBook Pro 14 M3" --purchase=2025-01-15 --months=24 --brand="Apple"
 
-# 4. Controlla le pratiche in corso e spunta un passaggio completato
+# 6. Controlla le pratiche in corso e spunta un passaggio completato
 npx lifeos task list
 npx lifeos task done --id=proc_passaporto_rinnovo --step=step_bollettino
 
-# 5. Esporta il feed iCalendar per sincronizzare lo smartphone o il calendario
+# 7. Esporta il feed iCalendar per sincronizzare lo smartphone o il calendario
 npx lifeos export --format=ics --out=scadenze-personali.ics
 
-# 6. Genera il report HTML interattivo offline
+# 8. Esporta il dossier Markdown stampabile o il report HTML offline
+npx lifeos export --format=md --out=Dossier-Personale.md
 npx lifeos export --format=html --out=cruscotto.html
 ```
 

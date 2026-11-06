@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Manoj Rollo <fbxmano@gmail.com>
 
+export * from "./audit.ts";
 export * from "./constants.ts";
 export * from "./deadlines.ts";
 export * from "./fixtures.ts";

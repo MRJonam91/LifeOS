@@ -7,6 +7,7 @@ import type {
   LifeDocument,
   LifeProcedure,
   LifeVault,
+  SearchMatch,
   Warranty,
 } from "./types.ts";
 
@@ -145,3 +146,98 @@ export function queryDocuments(
     return true;
   });
 }
+
+export function archiveDocument(vault: LifeVault, id: string, nowIso: string = new Date().toISOString()): LifeVault {
+  const doc = vault.documents.find((d) => d.id === id);
+  if (!doc) {
+    throw new Error(`Document with ID "${id}" not found.`);
+  }
+  return updateDocument(vault, { ...doc, archived: true }, nowIso);
+}
+
+export function restoreDocument(vault: LifeVault, id: string, nowIso: string = new Date().toISOString()): LifeVault {
+  const doc = vault.documents.find((d) => d.id === id);
+  if (!doc) {
+    throw new Error(`Document with ID "${id}" not found.`);
+  }
+  return updateDocument(vault, { ...doc, archived: false }, nowIso);
+}
+
+export function searchVault(vault: LifeVault, query: string): SearchMatch[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const matches: SearchMatch[] = [];
+
+  for (const doc of vault.documents) {
+    let score = 0;
+    const titleMatch = doc.title.toLowerCase().includes(q);
+    const numMatch = doc.documentNumber?.toLowerCase().includes(q) ?? false;
+    const notesMatch = doc.notes?.toLowerCase().includes(q) ?? false;
+    const tagMatch = doc.tags?.some((t) => t.toLowerCase().includes(q)) ?? false;
+
+    if (titleMatch) score += 10;
+    if (numMatch) score += 8;
+    if (tagMatch) score += 5;
+    if (notesMatch) score += 2;
+
+    if (score > 0) {
+      matches.push({
+        entityType: "document",
+        id: doc.id,
+        title: doc.title,
+        category: doc.category,
+        details: `Expires: ${doc.expiryDate}${doc.documentNumber ? ` | Doc #: ${doc.documentNumber}` : ""}${doc.archived ? " [ARCHIVED]" : ""}`,
+        score,
+      });
+    }
+  }
+
+  for (const w of vault.warranties) {
+    let score = 0;
+    const itemMatch = w.item.toLowerCase().includes(q);
+    const brandMatch = w.brand?.toLowerCase().includes(q) ?? false;
+    const serialMatch = w.serialNumber?.toLowerCase().includes(q) ?? false;
+    const tagMatch = w.tags?.some((t) => t.toLowerCase().includes(q)) ?? false;
+
+    if (itemMatch) score += 10;
+    if (brandMatch) score += 7;
+    if (serialMatch) score += 8;
+    if (tagMatch) score += 5;
+
+    if (score > 0) {
+      matches.push({
+        entityType: "warranty",
+        id: w.id,
+        title: `${w.item}${w.brand ? ` (${w.brand})` : ""}`,
+        category: "warranty",
+        details: `Purchased: ${w.purchaseDate} | Expires: ${w.expiryDate}${w.retailer ? ` | ${w.retailer}` : ""}`,
+        score,
+      });
+    }
+  }
+
+  for (const p of vault.procedures) {
+    let score = 0;
+    const titleMatch = p.title.toLowerCase().includes(q);
+    const stepMatch = p.steps.some((s) => s.title.toLowerCase().includes(q));
+    const tagMatch = p.tags?.some((t) => t.toLowerCase().includes(q)) ?? false;
+
+    if (titleMatch) score += 10;
+    if (stepMatch) score += 6;
+    if (tagMatch) score += 5;
+
+    if (score > 0) {
+      matches.push({
+        entityType: "procedure",
+        id: p.id,
+        title: p.title,
+        category: p.category,
+        details: `Status: ${p.status} | Steps: ${p.steps.length}${p.targetDeadline ? ` | Deadline: ${p.targetDeadline}` : ""}`,
+        score,
+      });
+    }
+  }
+
+  return matches.sort((a, b) => b.score - a.score);
+}
+

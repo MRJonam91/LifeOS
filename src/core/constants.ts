@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Manoj Rollo <fbxmano@gmail.com>
 
-export const LIFEOS_VERSION = "1.0.0";
+export const LIFEOS_VERSION = "1.1.0-alpha";
 export const LIFEOS_SCHEMA_VERSION = "1.0.0";
 
 /** Anti-plagiarism marker 1: namespace constant */

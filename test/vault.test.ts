@@ -7,9 +7,13 @@ import {
   addDocument,
   addProcedure,
   addWarranty,
+  archiveDocument,
   createEmptyVault,
+  createPilotVault,
   queryDocuments,
   removeDocument,
+  restoreDocument,
+  searchVault,
   updateDocument,
 } from "../src/index.ts";
 
@@ -69,3 +73,36 @@ test("addWarranty and addProcedure work smoothly", () => {
   vault = addProcedure(vault, proc);
   assert.equal(vault.procedures.length, 1);
 });
+
+test("archiveDocument and restoreDocument toggle archived state", () => {
+  let vault = createPilotVault();
+  const docId = "doc_cie_01";
+
+  assert.equal(vault.documents.find((d) => d.id === docId)?.archived, undefined);
+
+  vault = archiveDocument(vault, docId);
+  assert.equal(vault.documents.find((d) => d.id === docId)?.archived, true);
+
+  vault = restoreDocument(vault, docId);
+  assert.equal(vault.documents.find((d) => d.id === docId)?.archived, false);
+});
+
+test("searchVault finds cross-entity matches by keyword, tag, or serial", () => {
+  const vault = createPilotVault();
+
+  // Search by keyword in title
+  const passaportoMatches = searchVault(vault, "passaporto");
+  assert.ok(passaportoMatches.length >= 2); // Document + Procedure
+  assert.ok(passaportoMatches.some((m) => m.entityType === "document"));
+  assert.ok(passaportoMatches.some((m) => m.entityType === "procedure"));
+
+  // Search by brand / hardware item
+  const appleMatches = searchVault(vault, "Apple");
+  assert.equal(appleMatches.length, 1);
+  assert.equal(appleMatches[0]?.id, "war_macbook_01");
+
+  // Search non-existent
+  const emptyMatches = searchVault(vault, "quantum-flux-core");
+  assert.equal(emptyMatches.length, 0);
+});
+
