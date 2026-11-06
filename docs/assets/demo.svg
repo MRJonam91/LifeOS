@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="100%" height="100%">
+  <metadata>
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <dc:creator>Manoj Rollo (MRJonam91)</dc:creator>
+      <dc:identifier>lifeos.vault.v1.7b41e9</dc:identifier>
+      <dc:title>LifeOS Demo Preview</dc:title>
+    </rdf:RDF>
+  </metadata>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#131b2e" />
+    </linearGradient>
+    <style>
+      .term-title { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; fill: #94a3b8; font-weight: 600; }
+      .term-text { font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace; font-size: 13px; fill: #f8fafc; }
+      .prompt { fill: #38bdf8; font-weight: bold; }
+      .cmd { fill: #facc15; }
+      .accent { fill: #34d399; }
+      .warn { fill: #fbbf24; }
+      .err { fill: #f87171; }
+      .dim { fill: #64748b; }
+      .cyan { fill: #22d3ee; }
+      .purple { fill: #c084fc; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="520" rx="16" fill="url(#bg)" />
+
+  <!-- Terminal Window Chrome -->
+  <rect x="25" y="25" width="850" height="470" rx="12" fill="#070a12" stroke="#23314d" stroke-width="1.5" />
+  <circle cx="50" cy="50" r="6" fill="#ef4444" />
+  <circle cx="70" cy="50" r="6" fill="#f59e0b" />
+  <circle cx="90" cy="50" r="6" fill="#10b981" />
+  <text x="450" y="55" text-anchor="middle" class="term-title">LifeOS — Local-First Personal Administrative Vault</text>
+
+  <!-- Terminal Body -->
+  <g transform="translate(48, 85)" class="term-text">
+    <text y="20"><tspan class="prompt">$ </tspan><tspan class="cmd">npx lifeos dashboard</tspan></text>
+    
+    <text y="52" class="cyan" font-weight="bold">=== LifeOS Personal Dashboard v1.0.0 ===</text>
+    <text y="72" class="dim">Owner: Manoj (Pilot User) | Reference Date: 2026-11-06</text>
+
+    <!-- Stats Bar -->
+    <text y="104">
+      <tspan font-weight="bold">Active Docs: </tspan><tspan class="accent">3/6</tspan>
+      <tspan class="dim">  |  </tspan><tspan font-weight="bold">Urgent (≤7d): </tspan><tspan class="accent">0</tspan>
+      <tspan class="dim">  |  </tspan><tspan font-weight="bold">Expiring Soon (≤30d): </tspan><tspan class="warn">3</tspan>
+      <tspan class="dim">  |  </tspan><tspan font-weight="bold">Warranties: </tspan><tspan class="cyan">1/2</tspan>
+      <tspan class="dim">  |  </tspan><tspan font-weight="bold">Procedures Active: </tspan><tspan class="purple">2</tspan>
+    </text>
+
+    <!-- Section: Timeline -->
+    <text y="140" class="warn" font-weight="bold">--- Priority Timeline &amp; Upcoming Deadlines ---</text>
+    <text y="164">  <tspan class="err">[WARR] </tspan><tspan>2026-03-10 (241d ago)  Lavatrice Serie 6 EcoSilence (Bosch) </tspan><tspan class="dim">(warranty)</tspan></text>
+    <text y="186">  <tspan class="warn">[DOCU] </tspan><tspan>2026-11-20 (in 14d  )  Polizza RC Auto &amp; Tutela Legale </tspan><tspan class="dim">(vehicle)</tspan></text>
+    <text y="208">  <tspan class="accent">[PROC] </tspan><tspan>2026-12-10 (in 34d  )  Pagare bollettino postale di 42,50€ libretto </tspan><tspan class="dim">(identity)</tspan></text>
+    <text y="230">  <tspan class="accent">[PROC] </tspan><tspan>2026-12-10 (in 34d  )  Acquistare contrassegno telematico da 73,50€ </tspan><tspan class="dim">(identity)</tspan></text>
+    <text y="252">  <tspan class="accent">[WARR] </tspan><tspan>2026-12-15 (in 39d  )  MacBook Pro 14 M3 Pro (Apple) </tspan><tspan class="dim">(warranty)</tspan></text>
+
+    <!-- Section: Procedures -->
+    <text y="290" class="cyan" font-weight="bold">--- Active Administrative Procedures (Pratiche) ---</text>
+    <text y="314">  <tspan font-weight="bold">Rinnovo e Rilascio Passaporto </tspan><tspan class="cyan">[███░░░░░░░░░░░░] 20%</tspan><tspan class="dim"> (1/5 steps)</tspan></text>
+    <text y="334">    <tspan class="accent">✓</tspan> <tspan class="dim">Prenotare appuntamento su Agenda Passaporti con SPID (due 2026-11-20)</tspan></text>
+    <text y="354">    <tspan class="dim">○ Pagare bollettino postale di 42,50€ per libretto passaporto (due 2026-12-10)</tspan></text>
+    <text y="374">    <tspan class="dim">○ Acquistare contrassegno telematico da 73,50€ (due 2026-12-10)</tspan></text>
+
+    <text y="408" class="dim">Quick commands: lifeos doc list | lifeos warranty list | lifeos export --format=ics</text>
+  </g>
+</svg>
