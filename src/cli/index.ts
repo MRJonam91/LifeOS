@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
+  computeVaultStats,
   diffVaults,
   exportDocumentsToCsv,
   exportVaultToCsv,
@@ -14,6 +15,7 @@ import {
   exportVaultToJson,
   exportVaultToMarkdown,
   formatVaultDiff,
+  generatePeriodicDigest,
   importVaultFromJson,
 } from "../adapters/index.ts";
 import { performVaultAudit } from "../core/audit.ts";
@@ -28,6 +30,7 @@ import {
 } from "../core/deadlines.ts";
 import { createPilotVault } from "../core/fixtures.ts";
 import { completeStep, computeProcedureProgress, createProcedure } from "../core/procedures.ts";
+import { BUILTIN_PROCEDURE_TEMPLATES, instantiateProcedureTemplate } from "../core/templates.ts";
 import type { DocumentCategory, LifeDocument, LifeVault } from "../core/types.ts";
 import { isSupportedCategory, validateDocument } from "../core/validator.ts";
 import {
@@ -177,7 +180,7 @@ function renderDashboard(vault: LifeVault, refDate: string): void {
     }
   }
 
-  console.log("\n\x1b[90mQuick commands: lifeos doc list | lifeos audit | lifeos search <term> | lifeos export --format=ics\x1b[0m");
+  console.log("\n\x1b[90mQuick commands: lifeos doc list | lifeos audit | lifeos digest | lifeos stats\x1b[0m");
 }
 
 function handleSearchCommand(vault: LifeVault, query?: string): void {
@@ -254,6 +257,45 @@ function handleDiffCommand(vault: LifeVault, otherPath?: string): void {
     console.error(`\x1b[31mError reading comparison vault: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
     process.exit(1);
   }
+}
+
+function handleDigestCommand(vault: LifeVault, flags: Record<string, string>): void {
+  const format = flags["format"] === "md" || flags["format"] === "markdown" ? "markdown" : "text";
+  const horizon = flags["days"] ? Number(flags["days"]) : 30;
+  const outPath = flags["out"];
+  const digest = generatePeriodicDigest(vault, { horizonDays: horizon, format });
+
+  if (outPath) {
+    writeFileSync(outPath, digest, "utf8");
+    console.log(`\x1b[32mDigest written to ${outPath}\x1b[0m`);
+  } else {
+    process.stdout.write(digest);
+  }
+}
+
+function handleStatsCommand(vault: LifeVault): void {
+  const stats = computeVaultStats(vault);
+
+  console.log(`\n\x1b[1;36m=== LifeOS Vault Analytics & Statistics ===\x1b[0m\n`);
+  console.log("\x1b[1mDocument Distribution by Category:\x1b[0m");
+  for (const [cat, count] of Object.entries(stats.documentsByCategory)) {
+    if (count > 0) {
+      console.log(`  • ${cat.padEnd(12)}: ${count}`);
+    }
+  }
+  if (stats.archivedDocumentsCount > 0) {
+    console.log(`  • Archived Docs: ${stats.archivedDocumentsCount}`);
+  }
+
+  console.log("\n\x1b[1mWarranties & Asset Protections:\x1b[0m");
+  console.log(`  • Registered Warranties: ${stats.warrantiesCount}`);
+  console.log(`  • Total Tracked Economic Value: €${stats.warrantiesTotalEur.toFixed(2)}`);
+  console.log(`  • Average Coverage Duration: ${stats.averageWarrantyMonths} months`);
+
+  console.log("\n\x1b[1mProcedures & Administrative Velocity:\x1b[0m");
+  console.log(`  • Active in progress: ${stats.proceduresInProgress}`);
+  console.log(`  • Completed procedures: ${stats.proceduresCompleted}`);
+  console.log(`  • Checklist completion rate: ${stats.stepsCompletionRate}% (${stats.completedChecklistSteps}/${stats.totalChecklistSteps} steps)\n`);
 }
 
 function handleDocCommand(vault: LifeVault, vaultPath: string, subCommand?: string, flags: Record<string, string> = {}): void {
@@ -470,6 +512,35 @@ function handleWarrantyCommand(vault: LifeVault, vaultPath: string, subCommand?:
 }
 
 function handleTaskCommand(vault: LifeVault, vaultPath: string, subCommand?: string, flags: Record<string, string> = {}): void {
+  if (subCommand === "templates") {
+    console.log(`\n\x1b[1;36m=== Built-in Procedure Templates ===\x1b[0m\n`);
+    for (const [key, tpl] of Object.entries(BUILTIN_PROCEDURE_TEMPLATES)) {
+      console.log(`• \x1b[1;33m${key}\x1b[0m [${tpl.category}]`);
+      console.log(`  ${tpl.title} — ${tpl.description}`);
+      console.log(`  Timeframe: ~${tpl.defaultDeadlineDays}d (${tpl.steps.length} checklist steps)\n`);
+    }
+    console.log(`\x1b[90mInstantiate with: lifeos task init --template=<template-key>\x1b[0m`);
+    return;
+  }
+
+  if (subCommand === "init") {
+    const templateKey = flags["template"];
+    if (!templateKey) {
+      console.error("\x1b[31mUsage: lifeos task init --template=passport-renewal|residency-change|driving-license-renewal|tenancy-termination\x1b[0m");
+      process.exit(1);
+    }
+    try {
+      const proc = instantiateProcedureTemplate(templateKey);
+      const updated = addProcedure(vault, proc);
+      saveVault(vaultPath, updated);
+      console.log(`\x1b[32mSuccessfully initialized procedure "${proc.title}" with ${proc.steps.length} steps from template "${templateKey}" (ID: ${proc.id})!\x1b[0m`);
+    } catch (err) {
+      console.error(`\x1b[31m${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+      process.exit(1);
+    }
+    return;
+  }
+
   if (subCommand === "list" || !subCommand) {
     console.log(`\n\x1b[1;36m=== Administrative Procedures & Paperwork (${vault.procedures.length}) ===\x1b[0m\n`);
     for (const p of vault.procedures) {
@@ -615,6 +686,8 @@ Track personal documents, renewal deadlines, warranties, and paperwork procedure
   \x1b[33mdashboard\x1b[0m                       Display priority timeline, status overview, and paperwork
   \x1b[33msearch <query>\x1b[0m                  Fast search across documents, warranties, and procedures
   \x1b[33maudit\x1b[0m                           Run tripartite integrity audit (Facts vs Estimates vs Decisions)
+  \x1b[33mdigest\x1b[0m                          Generate daily/weekly digest (--days=30, --format=text|md)
+  \x1b[33mstats\x1b[0m                           Detailed vault statistics & category breakdown
   \x1b[33mdiff <path>\x1b[0m                     Compare current vault with another backup/snapshot
   \x1b[33mdoc list\x1b[0m                        List documents in vault (--all to include archived)
   \x1b[33mdoc view\x1b[0m                        View complete details of a document (--id=...)
@@ -627,9 +700,11 @@ Track personal documents, renewal deadlines, warranties, and paperwork procedure
   \x1b[33mwarranty add\x1b[0m                    Register an item warranty
   \x1b[33mwarranty remove\x1b[0m                 Remove a warranty (--id=...)
   \x1b[33mtask list\x1b[0m                       List administrative procedures and checklist steps
+  \x1b[33mtask templates\x1b[0m                  List built-in bureaucratic templates (passport, residency, etc.)
+  \x1b[33mtask init\x1b[0m                       Instantiate a procedure from template (--template=...)
   \x1b[33mtask view\x1b[0m                       View procedure details and dependencies (--id=...)
   \x1b[33mtask done\x1b[0m                       Mark a checklist step as completed (--id=... --step=...)
-  \x1b[33mtask add\x1b[0m                        Create a new multi-step administrative procedure
+  \x1b[33mtask add\x1b[0m                        Create a new custom multi-step procedure
   \x1b[33mtask remove\x1b[0m                     Remove a procedure (--id=...)
   \x1b[33mexport\x1b[0m                          Export vault (--format=ics|json|html|md|csv [--out=filename])
   \x1b[33mdemo\x1b[0m                            Load or output synthetic pilot dataset
@@ -639,11 +714,12 @@ Track personal documents, renewal deadlines, warranties, and paperwork procedure
   lifeos dashboard
   lifeos search passaporto
   lifeos audit
+  lifeos digest --days=14 --format=md
+  lifeos stats
+  lifeos task init --template=passport-renewal
   lifeos doc add --title="Passaporto" --category=identity --expiry=2034-05-10
   lifeos warranty add --item="MacBook Pro" --purchase=2025-01-10 --months=24
-  lifeos task done --id=proc_passaporto_rinnovo --step=step_bollettino
   lifeos export --format=ics --out=scadenze.ics
-  lifeos export --format=md --out=Dossier.md
 `);
 }
 
@@ -687,6 +763,12 @@ export function runCli(argv: string[] = process.argv.slice(2)): void {
       break;
     case "audit":
       handleAuditCommand(vault);
+      break;
+    case "digest":
+      handleDigestCommand(vault, flags);
+      break;
+    case "stats":
+      handleStatsCommand(vault);
       break;
     case "diff":
       handleDiffCommand(vault, subCommand ?? rest[0]);

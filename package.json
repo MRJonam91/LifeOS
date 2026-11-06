@@ -1,6 +1,6 @@
 {
   "name": "lifeos",
-  "version": "1.1.0-alpha",
+  "version": "1.2.0-beta",
   "description": "Local-first personal operating system: track documents, deadlines, warranties, paperwork procedures, and export calendar feeds. Privacy-first, zero cloud dependencies.",
   "type": "module",
   "license": "AGPL-3.0-only",

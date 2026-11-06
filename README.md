@@ -68,6 +68,14 @@ npx lifeos export --format=ics --out=lifeos-deadlines.ics
 # 8. Export a printable Markdown dossier or interactive offline HTML report
 npx lifeos export --format=md --out=Dossier.md
 npx lifeos export --format=html --out=dashboard.html
+
+# 9. Generate a daily notification digest or view vault analytics
+npx lifeos digest --days=14 --format=md
+npx lifeos stats
+
+# 10. Instantiate a procedure from built-in bureaucratic templates
+npx lifeos task templates
+npx lifeos task init --template=passport-renewal
 ```
 
 ### Installation

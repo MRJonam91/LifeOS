@@ -34,7 +34,7 @@ test("CLI --version displays version", () => {
     encoding: "utf8",
   });
 
-  assert.ok(output.includes("lifeos v1.1.0-alpha"));
+  assert.ok(output.includes("lifeos v1.2.0-beta"));
 });
 
 test("CLI audit prints tripartite report", () => {
@@ -69,4 +69,35 @@ test("CLI export --format=md generates markdown output", () => {
   assert.ok(output.includes("# LifeOS — Personal Administrative Dossier"));
   assert.ok(output.includes("## 📊 Executive Overview"));
 });
+
+test("CLI digest prints periodic summary", () => {
+  const output = execSync("node dist/cli/index.js digest --days=14", {
+    env: { ...process.env, NO_SPONSOR: "1" },
+    encoding: "utf8",
+  });
+
+  assert.ok(output.includes("LifeOS Daily Digest"));
+});
+
+test("CLI stats prints analytics summary", () => {
+  const output = execSync("node dist/cli/index.js stats", {
+    env: { ...process.env, NO_SPONSOR: "1" },
+    encoding: "utf8",
+  });
+
+  assert.ok(output.includes("LifeOS Vault Analytics & Statistics"));
+  assert.ok(output.includes("Document Distribution by Category:"));
+  assert.ok(output.includes("Warranties & Asset Protections:"));
+});
+
+test("CLI task templates lists available procedure templates", () => {
+  const output = execSync("node dist/cli/index.js task templates", {
+    env: { ...process.env, NO_SPONSOR: "1" },
+    encoding: "utf8",
+  });
+
+  assert.ok(output.includes("passport-renewal"));
+  assert.ok(output.includes("residency-change"));
+});
+
 

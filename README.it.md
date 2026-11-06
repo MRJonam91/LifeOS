@@ -68,6 +68,14 @@ npx lifeos export --format=ics --out=scadenze-personali.ics
 # 8. Esporta il dossier Markdown stampabile o il report HTML offline
 npx lifeos export --format=md --out=Dossier-Personale.md
 npx lifeos export --format=html --out=cruscotto.html
+
+# 9. Genera un digest di allerta periodico o consulta le statistiche del vault
+npx lifeos digest --days=14 --format=md
+npx lifeos stats
+
+# 10. Avvia una pratica da template ministeriali predefiniti
+npx lifeos task templates
+npx lifeos task init --template=passport-renewal
 ```
 
 ### Installazione

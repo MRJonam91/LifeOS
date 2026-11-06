@@ -8,6 +8,41 @@ e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
 ---
 
+## [1.2.0-beta] - 2026-11-06
+
+### 🇮🇹 Aggiunto
+- **Catalogo Template Pratiche Amministrative** (`src/core/templates.ts`):
+  - Template predefiniti completi per procedimenti burocratici frequenti:
+    - `passport-renewal`: Procedura Agenda Passaporti (Polizia di Stato) con bollettino postale 42,50€, contrassegno telematico 73,50€, fototessere ICAO e appuntamento in Questura.
+    - `residency-change`: Dichiarazione di cambio abitazione/residenza telematica via ANPR, aggiornamento veicoli e accertamento Polizia Locale (45 giorni).
+    - `driving-license-renewal`: Rinnovo patente MIT con versamenti PagoPA, visita medica e ricezione nuova patente.
+    - `tenancy-termination`: Disdetta contratto di locazione con 6 mesi di preavviso, modello RLI Agenzia delle Entrate e verbale riconsegna.
+  - Comandi CLI: `lifeos task templates` e `lifeos task init --template=<template-key>`.
+- **Generatore di Digest & Notifiche Periodiche** (`src/adapters/digest.ts`):
+  - Sintesi periodica giornaliera o settimanale con raggruppamento per priorità: scadenze scadute, allerte critiche $\le 7$ giorni, scadenze imminenti e prossimo step operativo per ciascuna pratica aperta.
+  - Supporto per formato testo semplice (CLI/notifiche desktop) e Markdown (bot Telegram / email).
+  - Comando CLI: `lifeos digest [--days=30] [--format=text|md] [--out=...]`.
+- **Modulo Statistiche & Analisi Vault** (`src/adapters/stats.ts`):
+  - Ripartizione del patrimonio documentale per categoria (`identity`, `vehicle`, `home`, `work`, `health`, etc.).
+  - Valore economico totale coperto da garanzie legali attive (€) e durata media di copertura.
+  - Velocità amministrativa e tasso di completamento dei checklist step.
+  - Comando CLI: `lifeos stats`.
+- **Espansione Test**: Suite portata a 36 test unitari passati con successo (0 falliti).
+- **Core LOC Guard**: 1.400 righe non vuote in `src/core/` (conforme al vincolo $< 1.500$ LOC).
+
+### 🇬🇧 Added
+- **Bureaucratic Procedure Templates Catalog** (`src/core/templates.ts`):
+  - Out-of-the-box templates for common administrative workflows: `passport-renewal`, `residency-change`, `driving-license-renewal`, `tenancy-termination`.
+  - Commands: `lifeos task templates`, `lifeos task init --template=<key>`.
+- **Periodic Alert Digest Generator** (`src/adapters/digest.ts`):
+  - Daily/weekly notification digest grouping overdue, critical ($\le 7$d), upcoming, and active paperwork tasks.
+  - Supports Markdown and plain text formatting for Telegram bots, email notifications, and cron integrations.
+  - Command: `lifeos digest [--days=30] [--format=text|md]`.
+- **Vault Statistics & Analytics Module** (`src/adapters/stats.ts`):
+  - Category distribution analysis, total statutory warranty monetary value (€), and checklist completion metrics.
+  - Command: `lifeos stats`.
+- **Test Suite Expansion**: 36 comprehensive unit tests passing with Node.js native test runner.
+
 ## [1.1.0-alpha] - 2026-11-06
 
 ### 🇮🇹 Aggiunto
