@@ -188,6 +188,10 @@ export function exportVaultToHtml(vault: LifeVault, referenceDate?: string): str
     </div>
   </div>
 
+  <div class="search-container" style="margin-bottom: 24px;">
+    <input type="text" id="vaultSearch" placeholder="🔍 Instant search across timeline, documents, and procedures..." oninput="handleSearch(this.value)" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 14px; outline: none;">
+  </div>
+
   <h2 class="section-title">Timeline &amp; Upcoming Deadlines</h2>
   <div class="table-container">
     <table>
@@ -221,6 +225,17 @@ export function exportVaultToHtml(vault: LifeVault, referenceDate?: string): str
     <p>LifeOS — Local-First Personal Dashboard &amp; Paperwork Vault. Private &amp; Offline.</p>
     <p><small>Dual-licensed under AGPL-3.0-only &amp; Commercial. Developed by Manoj Rollo (MRJonam91).</small></p>
   </div>
+  <script>
+    function handleSearch(q) {
+      const term = q.trim().toLowerCase();
+      document.querySelectorAll('tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+      });
+      document.querySelectorAll('.cards-grid .card').forEach(card => {
+        card.style.display = card.textContent.toLowerCase().includes(term) ? '' : 'none';
+      });
+    }
+  </script>
 </body>
 </html>`;
 }

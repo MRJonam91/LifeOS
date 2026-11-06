@@ -24,12 +24,16 @@ export function performVaultAudit(vault: LifeVault, referenceDate: string = getT
         actionRequired: "Renew document immediately or mark as archived if no longer valid",
       });
     } else if (days <= (doc.warningDays ?? 30)) {
+      const warnThreshold = doc.warningDays ?? 30;
       issues.push({
         severity: "warning",
         category: "document",
         targetId: doc.id,
         targetTitle: doc.title,
-        message: `Document expires in ${days} days (${doc.expiryDate})`,
+        message:
+          warnThreshold > 30
+            ? `Document within notice threshold (${days} days remaining, threshold ${warnThreshold}d, expires ${doc.expiryDate})`
+            : `Document expires in ${days} days (${doc.expiryDate})`,
         actionRequired: "Initiate renewal process or schedule required medical/consular appointment",
       });
     }

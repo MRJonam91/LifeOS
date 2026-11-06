@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Manoj Rollo <fbxmano@gmail.com>
 
-import type { LifeDocument, LifeVault, Warranty } from "../core/types.ts";
+import type { LifeDocument, LifeProcedure, LifeVault, Warranty } from "../core/types.ts";
 
 function escapeCsvField(val: unknown): string {
   if (val === undefined || val === null) return "";
@@ -92,9 +92,69 @@ export function exportWarrantiesToCsv(warranties: Warranty[]): string {
   );
 }
 
-export function exportVaultToCsv(vault: LifeVault): { documents: string; warranties: string } {
+export function exportProceduresToCsv(procedures: LifeProcedure[]): string {
+  const headers = [
+    "ProcedureID",
+    "ProcedureTitle",
+    "Category",
+    "Status",
+    "TargetDeadline",
+    "StepID",
+    "StepTitle",
+    "StepDueDate",
+    "StepCompleted",
+    "StepCompletedAt",
+    "RequiredDocIDs",
+    "StepNotes",
+  ];
+
+  const rows: unknown[][] = [];
+  for (const proc of procedures) {
+    if (proc.steps.length === 0) {
+      rows.push([
+        proc.id,
+        proc.title,
+        proc.category,
+        proc.status,
+        proc.targetDeadline ?? "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        proc.notes ?? "",
+      ]);
+    } else {
+      for (const step of proc.steps) {
+        rows.push([
+          proc.id,
+          proc.title,
+          proc.category,
+          proc.status,
+          proc.targetDeadline ?? "",
+          step.id,
+          step.title,
+          step.dueDate ?? "",
+          step.completed ? "true" : "false",
+          step.completedAt ?? "",
+          (step.requiredDocIds ?? []).join(";"),
+          step.notes ?? "",
+        ]);
+      }
+    }
+  }
+
+  return (
+    [headers.map(escapeCsvField).join(","), ...rows.map((r) => r.map(escapeCsvField).join(","))].join("\r\n") +
+    "\r\n"
+  );
+}
+
+export function exportVaultToCsv(vault: LifeVault): { documents: string; warranties: string; procedures: string } {
   return {
     documents: exportDocumentsToCsv(vault.documents),
     warranties: exportWarrantiesToCsv(vault.warranties),
+    procedures: exportProceduresToCsv(vault.procedures),
   };
 }

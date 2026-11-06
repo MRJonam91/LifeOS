@@ -6,6 +6,8 @@ import test from "node:test";
 import {
   createPilotVault,
   exportDocumentsToCsv,
+  exportProceduresToCsv,
+  exportVaultToCsv,
   exportVaultToHtml,
   exportVaultToIcal,
   exportVaultToJson,
@@ -25,7 +27,7 @@ test("exportVaultToIcal generates valid RFC 5545 format with VCALENDAR, VEVENT, 
   assert.ok(ics.trimEnd().endsWith("END:VCALENDAR"));
 });
 
-test("CSV exports format documents and warranties with proper headers", () => {
+test("CSV exports format documents, warranties, and procedures with proper headers", () => {
   const vault = createPilotVault();
   const docCsv = exportDocumentsToCsv(vault.documents);
   assert.ok(docCsv.startsWith("ID,Title,Category,DocumentNumber"));
@@ -34,6 +36,15 @@ test("CSV exports format documents and warranties with proper headers", () => {
   const warCsv = exportWarrantiesToCsv(vault.warranties);
   assert.ok(warCsv.startsWith("ID,Item,Brand,Model"));
   assert.ok(warCsv.includes("MacBook Pro 14 M3 Pro"));
+
+  const procCsv = exportProceduresToCsv(vault.procedures);
+  assert.ok(procCsv.startsWith("ProcedureID,ProcedureTitle,Category,Status"));
+  assert.ok(procCsv.includes("Rinnovo e Rilascio Passaporto"));
+
+  const allCsv = exportVaultToCsv(vault);
+  assert.ok(allCsv.documents.includes("Carta d'Identità"));
+  assert.ok(allCsv.warranties.includes("MacBook Pro"));
+  assert.ok(allCsv.procedures.includes("Rinnovo e Rilascio Passaporto"));
 });
 
 test("exportVaultToHtml generates valid HTML document", () => {
