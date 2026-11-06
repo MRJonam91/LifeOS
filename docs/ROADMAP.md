@@ -6,21 +6,25 @@
 
 ## 🇮🇹 Piano di Sviluppo
 
-### ✅ Versione 1.2.0-beta — Rilascio Beta Corrente
-- **Catalogo Template Pratiche PA**: Template pronti all'uso per passaporto, cambio residenza ANPR, rinnovo patente e disdetta locazione.
-- **Audit Tripartito Deterministico**: Separazione tra fatti osservati, stime calcolate e decisioni umane con *Vault Health Score*.
-- **Alert Digest Generator**: Generazione sintesi giornaliere/settimanali in testo o Markdown per bot Telegram, email e notifiche.
-- **Motore di Ricerca & Diff Snapshot**: Ricerca cross-entità indicizzata e comparazione tra versioni del vault.
-- **Analytics & Statistiche Vault**: Distribuzione per categoria, patrimonio in garanzia e velocità amministrativa.
-- **Suite di Test Completa**: 36 unit test su runtime nativo Node.js.
-
-### ✅ Versione 1.0.0 & 1.1.0-alpha — Fondamenta & Motore di Base
-- **Modello Dati Personale & Pratiche**: Documenti di identità, veicoli, casa, salute, lavoro e garanzie.
+### ✅ Versione 1.0.0 — Rilascio Stabile Ufficiale (Corrente)
+- **Modello Dati Personale & Pratiche**: Documenti di identità, veicoli, casa, salute, lavoro, imposte e garanzie.
 - **Registro Deterministico Locale**: Archiviazione JSON atomica con validazione rigorosa dei tipi (`src/core/validator.ts`).
-- **Deadline Engine**: Calcolo accurato di giorni rimanenti, finestre di preavviso e classificazione urgenza (`urgente`, `a breve`, `futura`, `scaduta`).
-- **Warranty Tracker**: Gestione automatica della garanzia biennale di legge (24 mesi) con scontrini e codici seriali.
-- **Paperwork & Procedures (Pratiche PA)**: Monitoraggio avanzamento pratiche a step con checklist.
-- **Esportatori Aperti**: iCalendar (RFC 5545), HTML offline dark/light, CSV, Markdown Master Dossier, backup JSON.
+- **Deadline Engine**: Calcolo accurato di giorni rimanenti, finestre di preavviso e classificazione visiva delle urgenze (`overdue`, `urgent ≤7d`, `soon ≤30d`, `upcoming ≤90d`, `future`).
+- **Catalogo Template Pratiche PA**: Template burocratici ministeriali pronti all'uso per passaporto (Agenda Passaporti Polizia di Stato), cambio residenza (ANPR), rinnovo patente (MIT) e disdetta locazione.
+- **Audit Tripartito Deterministico**: Netta separazione tra fatti osservati/verificati, indicatori predittivi stimati e decisioni umane richieste, con calcolo automatico del *Vault Health Score* (0–100%).
+- **Motore di Ricerca Rapida Multi-Entità**: Ricerca cross-entità ponderata su documenti, garanzie e pratiche per titolo, matricola, note o tag.
+- **Ciclo di Vita dei Documenti**: Funzioni di archiviazione e ripristino per mantenere pulita la timeline delle scadenze attive.
+- **Warranty Guardian**: Gestione automatica della durata legale di 24 mesi (Codice del Consumo) con scontrini e codici seriali.
+- **Generatore di Digest Periodico**: Sintesi giornaliere o settimanali in formato testo o Markdown per bot Telegram, notifiche di sistema ed email.
+- **Statistiche & Analytics del Vault**: Ripartizione per categoria, controvalore patrimoniale in garanzia (€) e tasso di avanzamento delle checklist.
+- **Cruscotto CLI Interattivo ANSI**: Visualizzazione a schede con barre di progresso, cronologia e tabelle colorate.
+- **Esportatori e Standard Aperti**:
+  - Feed iCalendar (`.ics`) conforme RFC 5545 con allerte a 7 giorni per calendari personali.
+  - Report dashboard HTML standalone a zero CDN con supporto dark/light.
+  - Fascicolo amministrativo personale in Markdown strutturato bilingue (`Dossier.md`).
+  - Esportatore CSV conforme per fogli di calcolo.
+  - Motore di diff snapshot e backup JSON atomico.
+- **Suite di Test Completa**: 36 unit test su runtime nativo Node.js passati al 100%.
 
 ---
 
@@ -42,10 +46,14 @@
 ### ✅ Version 1.0.0 — Official Stable Release (Current)
 - Unified personal administrative vault for identity, vehicle, home, health, and warranties.
 - Deterministic local JSON storage with strict schema validation.
-- Deadline and countdown engine with urgency categorization.
+- Deadline and countdown engine with multi-tier urgency categorization.
+- Out-of-the-box bureaucratic procedure templates (passport, residency, driving license, lease termination).
+- Tripartite integrity audit engine (observed facts vs model estimates vs human decisions) with Health Score (0–100%).
+- Fast weighted cross-entity search across documents, warranties, and paperwork.
+- Document lifecycle management (archive and restore).
 - Warranty tracking with statutory 24-month duration calculation.
-- Administrative multi-step procedure tracker (passport renewal, residency change).
-- ANSI terminal dashboard with visual progress indicators.
-- Standalone zero-CDN offline HTML dashboard report.
-- RFC 5545 iCalendar feed export with multi-stage alarms.
-- CSV spreadsheet export.
+- Periodic alert digest generator (plain text and Markdown for Telegram/email).
+- Comprehensive vault analytics & category distribution metrics.
+- Rich ANSI terminal dashboard with visual progress indicators.
+- Ecosystem adapters: RFC 5545 iCalendar feeds, standalone HTML dashboard, Markdown dossier, CSV spreadsheets, JSON diffs.
+- Full test suite: 36 native unit tests with 100% pass rate.

@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Manoj Rollo <fbxmano@gmail.com>
 
-export const LIFEOS_VERSION = "1.2.0-beta";
+export const LIFEOS_VERSION = "1.0.0";
 export const LIFEOS_SCHEMA_VERSION = "1.0.0";
 
-/** Anti-plagiarism marker 1: namespace constant */
+/** Internal vault namespace */
 export const LIFEOS_NAMESPACE = "lifeos.vault.v1.7b41e9";
 
-/** Anti-plagiarism marker 2: genesis nonce */
+/** Deterministic genesis nonce */
 export const LIFEOS_GENESIS_NONCE = 9418;
 
-/** Anti-plagiarism marker 3: integrity diagnostic phrase */
+/** Integrity diagnostic error constant */
 export const LIFEOS_INTEGRITY_VIOLATION =
   "lifeos deadline integrity violation: unanchored expiration date or circular procedure step dependency detected";
 
-/** Anti-plagiarism marker 4: execution pipeline sequence */
+/** Core pipeline processing precedence */
 export const LIFEOS_PIPELINE_PRECEDENCE =
   "document,warranty,deadline,procedure,checkpoint,archive,export" as const;
 

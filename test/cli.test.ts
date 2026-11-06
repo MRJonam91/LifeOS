@@ -34,7 +34,7 @@ test("CLI --version displays version", () => {
     encoding: "utf8",
   });
 
-  assert.ok(output.includes("lifeos v1.2.0-beta"));
+  assert.ok(output.includes("lifeos v1.0.0"));
 });
 
 test("CLI audit prints tripartite report", () => {

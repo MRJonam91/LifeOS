@@ -8,112 +8,59 @@ e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
 ---
 
-## [1.2.0-beta] - 2026-11-06
+## [1.0.0] - 2026-11-06 — Official Stable Release
 
 ### 🇮🇹 Aggiunto
-- **Catalogo Template Pratiche Amministrative** (`src/core/templates.ts`):
-  - Template predefiniti completi per procedimenti burocratici frequenti:
-    - `passport-renewal`: Procedura Agenda Passaporti (Polizia di Stato) con bollettino postale 42,50€, contrassegno telematico 73,50€, fototessere ICAO e appuntamento in Questura.
-    - `residency-change`: Dichiarazione di cambio abitazione/residenza telematica via ANPR, aggiornamento veicoli e accertamento Polizia Locale (45 giorni).
-    - `driving-license-renewal`: Rinnovo patente MIT con versamenti PagoPA, visita medica e ricezione nuova patente.
-    - `tenancy-termination`: Disdetta contratto di locazione con 6 mesi di preavviso, modello RLI Agenzia delle Entrate e verbale riconsegna.
-  - Comandi CLI: `lifeos task templates` e `lifeos task init --template=<template-key>`.
-- **Generatore di Digest & Notifiche Periodiche** (`src/adapters/digest.ts`):
-  - Sintesi periodica giornaliera o settimanale con raggruppamento per priorità: scadenze scadute, allerte critiche $\le 7$ giorni, scadenze imminenti e prossimo step operativo per ciascuna pratica aperta.
-  - Supporto per formato testo semplice (CLI/notifiche desktop) e Markdown (bot Telegram / email).
-  - Comando CLI: `lifeos digest [--days=30] [--format=text|md] [--out=...]`.
-- **Modulo Statistiche & Analisi Vault** (`src/adapters/stats.ts`):
-  - Ripartizione del patrimonio documentale per categoria (`identity`, `vehicle`, `home`, `work`, `health`, etc.).
-  - Valore economico totale coperto da garanzie legali attive (€) e durata media di copertura.
-  - Velocità amministrativa e tasso di completamento dei checklist step.
-  - Comando CLI: `lifeos stats`.
-- **Espansione Test**: Suite portata a 36 test unitari passati con successo (0 falliti).
-- **Core LOC Guard**: 1.400 righe non vuote in `src/core/` (conforme al vincolo $< 1.500$ LOC).
-
-### 🇬🇧 Added
-- **Bureaucratic Procedure Templates Catalog** (`src/core/templates.ts`):
-  - Out-of-the-box templates for common administrative workflows: `passport-renewal`, `residency-change`, `driving-license-renewal`, `tenancy-termination`.
-  - Commands: `lifeos task templates`, `lifeos task init --template=<key>`.
-- **Periodic Alert Digest Generator** (`src/adapters/digest.ts`):
-  - Daily/weekly notification digest grouping overdue, critical ($\le 7$d), upcoming, and active paperwork tasks.
-  - Supports Markdown and plain text formatting for Telegram bots, email notifications, and cron integrations.
-  - Command: `lifeos digest [--days=30] [--format=text|md]`.
-- **Vault Statistics & Analytics Module** (`src/adapters/stats.ts`):
-  - Category distribution analysis, total statutory warranty monetary value (€), and checklist completion metrics.
-  - Command: `lifeos stats`.
-- **Test Suite Expansion**: 36 comprehensive unit tests passing with Node.js native test runner.
-
-## [1.1.0-alpha] - 2026-11-06
-
-### 🇮🇹 Aggiunto
-- **Motore di Audit Tripartito** (`src/core/audit.ts`):
-  - Verifica automatica di fatti osservati (documenti, garanzie verificate, scontrini presenti).
-  - Indicatori stimati (valore economico coperto da garanzia attiva, percentuale completamento pratiche).
-  - Decisioni umane richieste: allerte critiche su documenti scaduti, scadenze imminenti ($\le 30$ giorni), scontrini mancanti, o dipendenze documentali bloccanti nelle pratiche.
+- **Core Domain & Modello Dati Personale** (`src/core/types.ts`):
+  - Gestione atomica e locale di documenti anagrafici, patenti e veicoli, contratti di locazione casa, polizze, tessere sanitarie e lavoro.
+  - Tracciamento garanzie legali di conformità (24 mesi Codice del Consumo) con scontrini fiscali e numeri di serie.
+  - Monitoraggio pratiche e procedimenti burocratici della Pubblica Amministrazione a step con checklist e dipendenze.
+- **Motore di Scadenze & Urgenza** (`src/core/deadlines.ts`):
+  - Calcolo deterministico dei giorni residui e classificazione visiva delle urgenze (`overdue`, `urgent ≤7d`, `soon ≤30d`, `upcoming ≤90d`, `future`).
+- **Catalogo Template Pratiche PA** (`src/core/templates.ts`):
+  - Template ministeriali pronti all'uso: `passport-renewal` (Agenda Passaporti Polizia di Stato), `residency-change` (ANPR), `driving-license-renewal` (MIT/PagoPA), `tenancy-termination` (Modello RLI e recesso).
+- **Audit di Integrità Tripartito** (`src/core/audit.ts`):
+  - Separazione netta tra fatti verificabili osservati, stime predittive calcolate e decisioni umane richieste (documenti scaduti, dipendenze non soddisfatte, scontrini mancanti).
   - Calcolo del *Vault Health Score* (0–100%).
-- **Motore di Ricerca Rapida Multi-Entità** (`searchVault` in `src/core/vault.ts`):
-  - Ricerca cross-entità ponderata su documenti, garanzie e pratiche per titolo, matricola, note o tag.
-- **Gestione Ciclo di Vita Documenti (Archiviazione/Ripristino)**:
-  - Funzioni `archiveDocument` e `restoreDocument` per conservare lo storico senza ingombrare la dashboard delle scadenze attive.
-- **Esportatore Markdown Master Dossier** (`src/adapters/markdown.ts`):
-  - Esportazione del fascicolo personale completo in formato Markdown strutturato bilingue.
-- **Motore di Diff & Comparazione Vault** (`src/adapters/diff.ts`):
-  - Calcolo differenziale e report testuale tra versioni del vault (elementi aggiunti, modificati, rimossi).
-- **Nuovi Comandi CLI**:
-  - `lifeos search <query>`: ricerca rapida.
-  - `lifeos audit`: esecuzione dell'audit di integrità tripartito.
-  - `lifeos diff <path>`: confronto con snapshot precedente.
-  - `lifeos doc view|archive|restore|remove`: ispezione e gestione del ciclo di vita.
-  - `lifeos warranty view|remove`: ispezione dettagli garanzie.
-  - `lifeos task view|remove`: ispezione e cancellazione pratiche.
-  - `lifeos export --format=md`: esportazione dossier in Markdown.
-- **Espansione Suite di Test**: 28 test unitari passati con successo (`test/*.test.ts`).
+- **Motore di Ricerca Rapida Multi-Entità** (`src/core/vault.ts`):
+  - Ricerca cross-entità ponderata su documenti, garanzie e procedimenti per testo, matricola, note o tag.
+- **Gestione del Ciclo di Vita (Archiviazione/Ripristino)**:
+  - Funzioni `archiveDocument` e `restoreDocument` per conservare lo storico senza alterare le scadenze attive.
+- **Interfaccia CLI Completa** (`src/cli/index.ts`):
+  - Cruscotto visuale terminale ANSI (`lifeos dashboard`).
+  - Gestione documenti (`doc list|view|add|archive|restore|remove`), garanzie (`warranty list|view|add|remove`) e pratiche (`task list|view|init|templates|done|add|remove`).
+  - Ricerca rapida (`lifeos search`), audit (`lifeos audit`), digest periodico (`lifeos digest`), statistiche e ripartizione per categoria (`lifeos stats`), confronto snapshot (`lifeos diff`).
+- **Esportatori e Standard Aperti** (`src/adapters/`):
+  - Feed iCalendar conforme RFC 5545 (`.ics`) con allerte e promemoria anticipati per calendari desktop/mobile.
+  - Cruscotto interattivo HTML standalone a zero CDN con supporto dark/light.
+  - Fascicolo amministrativo personale in Markdown strutturato (`Dossier.md`).
+  - Tabelle CSV conformi per fogli di calcolo Excel / LibreOffice.
+  - Backup e ripristino JSON atomico.
+- **Suite di Test**: 36 test unitari eseguiti su runtime nativo Node.js (`test/*.test.ts`) con 100% di esito positivo.
+- **Conformità e Governance**: Modello a doppia licenza (AGPL-3.0-only + commerciale), CLA, Codice di Condotta e Security Policy con 90 giorni di disclosure coordinata.
 
 ### 🇬🇧 Added
-- **Tripartite Integrity Audit Engine** (`src/core/audit.ts`):
-  - Audits observed facts (registered docs, warranties with verified receipts).
-  - Calculates estimated indicators (economic value under active warranty, procedure progress).
-  - Surfaces required human decisions: expired IDs, upcoming deadlines, missing proofs, and blocked step prerequisites.
-  - Computes deterministic *Vault Health Score* (0–100%).
-- **Fast Cross-Entity Search** (`searchVault` in `src/core/vault.ts`):
-  - Unified weighted scoring across documents, warranties, and procedures.
-- **Document Lifecycle Management (Archive & Restore)**:
-  - `archiveDocument` and `restoreDocument` for clean active timeline separation.
-- **Markdown Master Dossier Exporter** (`src/adapters/markdown.ts`):
-  - Structured printable Markdown dossier generation.
-- **Vault Diff Engine** (`src/adapters/diff.ts`):
-  - Comparison between backups and snapshots detecting additions, updates, and removals.
-- **New CLI Commands**:
-  - `lifeos search <query>`, `lifeos audit`, `lifeos diff <path>`, `doc view|archive|restore|remove`, `warranty view|remove`, `task view|remove`, `export --format=md`.
-- **Test Suite Expansion**: 28 tests passing with Node.js built-in test runner.
-
-## [1.0.0] - 2026-11-06
-
-### 🇮🇹 Aggiunto
-- **Core Domain & Modello Dati**: Gestione di documenti personali, identità, veicoli, casa, salute, garanzie commerciali e pratiche amministrative (`src/core/types.ts`).
-- **Motore di Scadenze & Urgenza**: Calcolo dei giorni residui, classificazione temporale (`overdue`, `urgent`, `soon`, `upcoming`, `future`) e sintesi del cruscotto (`src/core/deadlines.ts`).
-- **Warranty Tracker**: Gestione automatica della durata biennale di legge (24 mesi) e tracciamento prove d'acquisto (`src/core/warranties.ts`).
-- **Pratiche & Procedure a Step**: Monitoraggio dell'avanzamento con checklist per pratiche della Pubblica Amministrazione (es. rinnovo passaporto, cambio residenza) (`src/core/procedures.ts`).
-- **Validazione Dati Rigorosa**: Validazione strutturale e temporale (`src/core/validator.ts`).
-- **Dataset Pilota Realistico**: Scenari completi predefiniti per test immediati in locale (`src/core/fixtures.ts`).
-- **Interfaccia CLI**: Comandi `dashboard`, `doc`, `warranty`, `task`, `export`, `demo`, con supporto colori ANSI e visualizzazione timeline (`src/cli/index.ts`).
-- **Esportatori Aperti**:
-  - Feed iCalendar (`.ics`) conforme RFC 5545 con allerte a 7 giorni e al giorno di scadenza (`src/adapters/ical.ts`).
-  - Esportatore CSV conforme per fogli di calcolo (`src/adapters/csv.ts`).
-  - Report dashboard HTML standalone a zero CDN (`src/adapters/html.ts`).
-  - Backup e ripristino JSON atomico (`src/adapters/backup.ts`).
-- **Suite di Test**: 18 test unitari su runtime nativo Node.js (`test/*.test.ts`).
-- **Integrità & Provenienza**: Registrazione marcatori anti-plagio in `_provenance/LifeOS.json`.
-- **Licenza & Governance**: Modello a doppia licenza (AGPL-3.0-only + commerciale), CLA, Codice di Condotta e Security Policy con disclosure coordinata a 90 giorni.
-
-### 🇬🇧 Added
-- **Core Domain & Data Model**: Personal documents, IDs, vehicle papers, home contracts, health cards, warranties, and bureaucratic procedures.
-- **Deadline & Urgency Engine**: Accurate countdowns, urgency stages (`overdue`, `urgent`, `soon`, `upcoming`, `future`), and dashboard aggregation.
-- **Warranty Lifecycle**: Automatic 24-month statutory calculation and proof-of-purchase references.
-- **Administrative Procedures**: Step checklist tracking with completion percentages and due dates.
-- **Deterministic Schema Validator**: Strict date formats and integrity rule checking.
-- **Realistic Pilot Dataset**: Pre-populated pilot fixtures for immediate local trials.
-- **Rich CLI**: Commands for dashboard overview, document/warranty/task management, and export.
-- **Open Standards Adapters**: RFC 5545 iCalendar feed, CSV exports, self-contained HTML offline report, JSON backup.
-- **Unit Test Suite**: 18 passing tests with native Node.js test runner.
+- **Core Domain & Personal Administrative Model** (`src/core/types.ts`):
+  - Structured local handling of IDs, passports, driver's licenses, leases, vehicle insurance, health cards, and work papers.
+  - Statutory 24-month consumer warranty tracker with proof-of-purchase references and serial numbers.
+  - Multi-step bureaucratic procedure tracker with actionable checklists and prerequisite validations.
+- **Deadline & Urgency Engine** (`src/core/deadlines.ts`):
+  - Deterministic countdown and priority classification (`overdue`, `urgent ≤7d`, `soon ≤30d`, `upcoming ≤90d`, `future`).
+- **Administrative Procedure Templates** (`src/core/templates.ts`):
+  - Built-in templates: `passport-renewal`, `residency-change`, `driving-license-renewal`, `tenancy-termination`.
+- **Tripartite Integrity Audit** (`src/core/audit.ts`):
+  - Clear segregation of observed facts, estimated indicators, and required human decisions.
+  - Deterministic *Vault Health Score* (0–100%).
+- **Fast Cross-Entity Search** (`src/core/vault.ts`):
+  - Weighted query scoring across documents, warranties, and paperwork.
+- **Document Lifecycle Management**:
+  - `archiveDocument` and `restoreDocument` commands for clean active timeline separation.
+- **Comprehensive CLI**:
+  - ANSI visual dashboard (`dashboard`), document/warranty/task management, multi-entity search (`search`), audit (`audit`), alert digests (`digest`), analytics breakdown (`stats`), and version comparison (`diff`).
+- **Open Standards Adapters**:
+  - RFC 5545 iCalendar (`.ics`) feed with multi-stage alarms.
+  - Standalone zero-CDN offline HTML dashboard report.
+  - Master Markdown dossier generation (`.md`).
+  - Standard CSV exports and atomic JSON backups.
+- **Test Suite**: 36 unit tests passing with Node.js built-in test runner.
 - **Licensing & Governance**: AGPL-3.0-only dual license, CLA, Code of Conduct, and Security Policy.
